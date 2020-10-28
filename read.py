@@ -1,10 +1,10 @@
-# -*- coding: utf-8 -*-
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 import numpy as np
 np.random.seed(2020)
 
-import os
+import os, sys
 import glob
 import cv2
 import math
@@ -15,8 +15,8 @@ import statistics
 import random
 import time
 
-from sklearn.cross_validation import train_test_split
-from sklearn.cross_validation import KFold
+from sklearn.model_selection import train_test_split
+from sklearn.model_selection import KFold
 from keras.models import Sequential
 from keras.layers.core import Dense, Dropout, Activation, Flatten
 from keras.layers.convolutional import Convolution2D, MaxPooling2D
@@ -24,12 +24,12 @@ from keras.optimizers import SGD, Adam
 from keras.utils import np_utils
 from keras.models import model_from_json
 from sklearn.metrics import log_loss
-from scipy.misc import imread, imresize
+from scipy.misc.pilutil import imread, imresize
 
 use_cache = 1
 # color type: 1 - grey, 3 - rgb
 color_type_global = 1
-training_dataset = 'dataset/imgs'  
+training_dataset = 'dataset'  
 
 # color_type = 1 - gray
 # color_type = 3 - RGB
@@ -60,7 +60,7 @@ def get_im_cv2_mod(path, img_rows, img_cols, color_type=1):
 
 def get_driver_data():
     dr = dict()
-    path = os.path.join(training_dataset, 'input', 'driver_imgs_list.csv')
+    path = os.path.join(training_dataset, 'driver_imgs_list.csv')
     print('Read drivers data')
     f = open(path, 'r')
     line = f.readline()
@@ -84,7 +84,7 @@ def load_train(img_rows, img_cols, color_type=1):
     print('Read train images')
     for j in range(10):
         print('Load folder c{}'.format(j))
-        path = os.path.join('..', 'input', 'train', 'c' + str(j), '*.jpg')
+        path = os.path.join(training_dataset,'img', 'train', 'c' + str(j), '*.jpg')
         files = glob.glob(path)
         for fl in files:
             flbase = os.path.basename(fl)
@@ -103,7 +103,7 @@ def load_train(img_rows, img_cols, color_type=1):
 def load_test(img_rows, img_cols, color_type=1):
     print('Read test images')
     start_time = time.time()
-    path = os.path.join('..', 'input', 'test', '*.jpg')
+    path = os.path.join(training_dataset, 'img', 'test', '*.jpg')
     files = glob.glob(path)
     X_test = []
     X_test_id = []
@@ -269,7 +269,7 @@ def create_model_v1(img_rows, img_cols, color_type=1):
     return model
 
 
-def run_single():
+def readfile():
     # input image dimensions
     img_rows, img_cols = 64, 64
     batch_size = 32
@@ -286,6 +286,19 @@ def run_single():
                      'p050', 'p051', 'p052', 'p056', 'p061', 'p064', 'p066', 'p072',
                      'p075']
     X_train, Y_train, train_index = copy_selected_drivers(train_data, train_target, driver_id, unique_list_train)
+    return X_train, Y_train, train_index
+
+def run_single():
+
+    X_train, Y_train, train_index = readfile()
+    print('read file done')
+
+    print( len(X_train), len(X_train[0]), len(Y_train), len(Y_train[0]) )  
+    print( X_train[0][0], Y_train[0]  )  
+
+    sys.exit() 
+
+
     unique_list_valid = ['p081']
     X_valid, Y_valid, test_index = copy_selected_drivers(train_data, train_target, driver_id, unique_list_valid)
 
@@ -324,4 +337,8 @@ def run_single():
     create_submission(test_res, test_id, info_string)
 
 
-run_single()
+if "__main__" == __name__:
+
+    run_single()
+
+
