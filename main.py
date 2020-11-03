@@ -17,6 +17,7 @@ import time
 
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import KFold
+import sklearn.model_selection as model_selection
 from keras.models import Sequential
 from keras.layers.core import Dense, Dropout, Activation, Flatten
 from keras.layers.convolutional import Convolution2D, MaxPooling2D
@@ -29,7 +30,14 @@ from scipy.misc.pilutil import imread, imresize
 use_cache = 1
 # color type: 1 - grey, 3 - rgb
 color_type_global = 1
-training_dataset = 'dataset'  
+dataset_path = './dataset'
+dataset_imgs = dataset_path + '/imgs'  
+test_size = 0.3   
+batch_size = 32
+nb_epoch = 3 
+random_state = 51
+img_rows, img_cols = 64, 64
+
 
 # color_type = 1 - gray
 # color_type = 3 - RGB
@@ -40,7 +48,9 @@ def get_im_cv2(path, img_rows, img_cols, color_type=1):
     elif color_type == 3:
         img = cv2.imread(path)
     # Reduce size
-    resized = cv2.resize(img, (img_cols, img_rows))
+    #resized = cv2.resize(img, (img_cols, img_rows))
+    # Keep size
+    resized =  img 
     return resized
 
 
@@ -60,7 +70,7 @@ def get_im_cv2_mod(path, img_rows, img_cols, color_type=1):
 
 def get_driver_data():
     dr = dict()
-    path = os.path.join(training_dataset, 'driver_imgs_list.csv')
+    path = os.path.join( dataset_path , 'driver_imgs_list.csv')
     print('Read drivers data')
     f = open(path, 'r')
     line = f.readline()
@@ -84,7 +94,7 @@ def load_train(img_rows, img_cols, color_type=1):
     print('Read train images')
     for j in range(10):
         print('Load folder c{}'.format(j))
-        path = os.path.join(training_dataset,'img', 'train', 'c' + str(j), '*.jpg')
+        path = os.path.join( dataset_imgs, 'train', 'c' + str(j), '*.jpg')
         files = glob.glob(path)
         for fl in files:
             flbase = os.path.basename(fl)
@@ -103,7 +113,7 @@ def load_train(img_rows, img_cols, color_type=1):
 def load_test(img_rows, img_cols, color_type=1):
     print('Read test images')
     start_time = time.time()
-    path = os.path.join(training_dataset, 'img', 'test', '*.jpg')
+    path = os.path.join( dataset_imgs, 'test', '*.jpg')
     files = glob.glob(path)
     X_test = []
     X_test_id = []
@@ -154,7 +164,6 @@ def read_model():
 
 
 def split_validation_set(train, target, test_size):
-    random_state = 51
     X_train, X_test, y_train, y_test = train_test_split(train, target, test_size=test_size, random_state=random_state)
     return X_train, X_test, y_train, y_test
 
@@ -169,6 +178,10 @@ def create_submission(predictions, test_id, info):
     sub_file = os.path.join('subm', 'submission_' + suffix + '.csv')
     result1.to_csv(sub_file, index=False)
 
+def shuffle_and_split( X, y, test_size ): 
+    assert 0<= test_size and test_size <=1 
+    X_train, X_test, y_train, y_test = model_selection.train_test_split(X, y, train_size=1-test_size, test_size=test_size, random_state=random_state)
+    return X_train, X_test, y_train, y_test  
 
 def read_and_normalize_train_data(img_rows, img_cols, color_type=1):
     cache_path = os.path.join('cache', 'train_r_' + str(img_rows) + '_c_' + str(img_cols) + '_t_' + str(color_type) + '.dat')
@@ -178,7 +191,7 @@ def read_and_normalize_train_data(img_rows, img_cols, color_type=1):
     else:
         print('Restore train from cache!')
         (train_data, train_target, driver_id, unique_drivers) = restore_data(cache_path)
-
+   
     train_data = np.array(train_data, dtype=np.uint8)
     train_target = np.array(train_target, dtype=np.uint8)
     train_data = train_data.reshape(train_data.shape[0], color_type, img_rows, img_cols)
@@ -271,13 +284,9 @@ def create_model_v1(img_rows, img_cols, color_type=1):
 
 def readfile():
     # input image dimensions
-    img_rows, img_cols = 64, 64
-    batch_size = 32
-    nb_epoch = 1
-    random_state = 51
-
+    
     train_data, train_target, driver_id, unique_drivers = read_and_normalize_train_data(img_rows, img_cols, color_type_global)
-    test_data, test_id = read_and_normalize_test_data(img_rows, img_cols, color_type_global)
+    #test_data, test_id = read_and_normalize_test_data(img_rows, img_cols, color_type_global)
 
     yfull_train = dict()
     yfull_test = []
@@ -290,16 +299,19 @@ def readfile():
 
 def run_single():
 
-    X_train, Y_train, train_index = readfile()
+    X_data, Y_data, data_index = readfile()
+
+    # shuffle, split original training dataset to training and testing. 'cause no testing labels in original test data.     
+    X_train, X_test, Y_train, Y_test = shuffle_and_split( X_data, Y_data, test_size )  
+
     print('read file done')
 
     print( len(X_train), len(X_train[0]), len(Y_train), len(Y_train[0]) )  
-    print( X_train[0][0], Y_train[0]  )  
-
-    sys.exit() 
-
+    print( X_train[0], Y_train[0]  )  
 
     unique_list_valid = ['p081']
+
+    """
     X_valid, Y_valid, test_index = copy_selected_drivers(train_data, train_target, driver_id, unique_list_valid)
 
     print('Start Single Run')
@@ -307,16 +319,23 @@ def run_single():
     print('Split valid: ', len(X_valid), len(Y_valid))
     print('Train drivers: ', unique_list_train)
     print('Test drivers: ', unique_list_valid)
+    """ 
 
     model = create_model_v1(img_rows, img_cols, color_type_global)
-    model.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=nb_epoch,
-              show_accuracy=True, verbose=1, validation_data=(X_valid, Y_valid))
+    print("about to train the model") 
+    sys.exit()  
+
+    #model.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=nb_epoch, show_accuracy=True, verbose=1, validation_data=(X_test, Y_test))
+    model.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=nb_epoch, show_accuracy=True, verbose=1)
+    
+    # save model
+    model.save('trained_model')  
 
     # score = model.evaluate(X_valid, Y_valid, show_accuracy=True, verbose=0)
     # print('Score log_loss: ', score[0])
 
-    predictions_valid = model.predict(X_valid, batch_size=128, verbose=1)
-    score = log_loss(Y_valid, predictions_valid)
+    predictions_test = model.predict(X_test, batch_size=128, verbose=1)
+    score = log_loss(Y_test, predictions_test )
     print('Score log_loss: ', score)
 
     # Store valid predictions
@@ -340,5 +359,6 @@ def run_single():
 if "__main__" == __name__:
 
     run_single()
+
 
 
