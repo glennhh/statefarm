@@ -5,7 +5,7 @@ import os, glob, math, cv2, time
 import numpy as np
 from joblib import Parallel, delayed
 
-
+data_folder = './dataset/imgs'
 img_size = 50
 sz = (img_size, img_size)
 
@@ -18,41 +18,54 @@ def process_image(img_file):
     return img
 
 
-start = time.time()
-
-X_train = []
-Y_train = []
-
-for j in range(10):
-    print('Load folder c{}'.format(j))
-    path = os.path.join('dataset/img/train', 'c' + str(j), '*.jpg')
-    files = glob.glob(path)
-    X_train.extend(Parallel(n_jobs=nprocs)(delayed(process_image)(im_file) for im_file in files))
-    Y_train.extend([j]*len(files))
+def read_train_data(): 
+    start = time.time()
     
-end = time.time() - start
-print("Time: %.2f seconds" % end)
-
+    X_train = []
+    Y_train = []
+    
+    for j in range(10):
+        print('Load folder c{}'.format(j))
+        path = os.path.join( data_folder,'train', 'c' + str(j), '*.jpg')
+        files = glob.glob(path)
+        X_train.extend(Parallel(n_jobs=nprocs)(delayed(process_image)(im_file) for im_file in files))
+        Y_train.extend([j]*len(files))
+        
+    end = time.time() - start
+    print("Loading train data: %.2f seconds" % end)
+    return X_train, Y_train 
 
 def process_test_image(img_file):
     return process_image(img_file), os.path.basename(img_file)
 
 
-start = time.time()
+def read_testing_data(): 
+    start = time.time()
+    
+    X_test    = []
+    X_test_id = []
+    
+    path  = os.path.join( data_folder, 'test', '*.jpg')
+    files = glob.glob(path)
+    
+    results = Parallel(n_jobs=nprocs)(delayed(process_test_image)(im_file) for im_file in files)
+    X_test, X_test_id = zip(*results)
+    
+    end = time.time() - start
+    print("Loading test data: %.2f seconds" % end)
+    return X_test, X_test_id 
 
-X_test    = []
-X_test_id = []
+if "__main__" == __name__:
+    
+    read_train_data() 
+    read_test_data()  
 
-path  = os.path.join('dataset/img/test', '*.jpg')
-files = glob.glob(path)
-
-results = Parallel(n_jobs=nprocs)(delayed(process_test_image)(im_file) for im_file in files)
-X_test, X_test_id = zip(*results)
-
-end = time.time() - start
-print("Time: %.2f seconds" % end)
-
-print(len(X_test))
+    print( X_train[0] ) 
+    print( Y_train[0] ) 
+    print( len(X_train) )
+    print( len(X_train[0]) ) 
+    print( len(Y_train) )  
+    print( len(Y_train[0]) ) 
 
 
 
