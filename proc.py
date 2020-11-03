@@ -9,7 +9,7 @@ data_folder = './dataset/imgs'
 img_size = 50
 sz = (img_size, img_size)
 
-nprocs = 2
+nprocs =4 
 
 
 def process_image(img_file):
@@ -18,7 +18,7 @@ def process_image(img_file):
     return img
 
 
-def read_train_data(): 
+def read_training_data(): 
     start = time.time()
     
     X_train = []
@@ -34,6 +34,7 @@ def read_train_data():
     end = time.time() - start
     print("Loading train data: %.2f seconds" % end)
     return X_train, Y_train 
+
 
 def process_test_image(img_file):
     return process_image(img_file), os.path.basename(img_file)
@@ -55,18 +56,16 @@ def read_testing_data():
     print("Loading test data: %.2f seconds" % end)
     return X_test, X_test_id 
 
+
 if "__main__" == __name__:
     
-    read_train_data() 
-    read_test_data()  
+    X_train, Y_train  = read_training_data()  
+    #X_test, X_test_id = read_testing_data()  
 
     print( X_train[0] ) 
-    print( Y_train[0] ) 
+    print( Y_train ) 
     print( len(X_train) )
     print( len(X_train[0]) ) 
     print( len(Y_train) )  
-    print( len(Y_train[0]) ) 
-
-
 
 
