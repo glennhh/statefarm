@@ -14,6 +14,7 @@ nprocs =4
 
 def process_image(img_file):
     img = cv2.imread(img_file)
+    #print("img size: ", len(img), len(img[0]) )    
     img = cv2.resize(img, sz).transpose((2,0,1)).astype('float32') / 255.0
     return img
 
@@ -63,9 +64,9 @@ if "__main__" == __name__:
     #X_test, X_test_id = read_testing_data()  
 
     print( X_train[0] ) 
-    print( Y_train ) 
+    #print( Y_train ) 
     print( len(X_train) )
-    print( len(X_train[0]) ) 
+    print( len(X_train[0]), len(X_train[0][0]) ) 
     print( len(Y_train) )  
 
 

@@ -20,12 +20,14 @@ from sklearn.model_selection import KFold
 import sklearn.model_selection as model_selection
 from keras.models import Sequential
 from keras.layers.core import Dense, Dropout, Activation, Flatten
-from keras.layers.convolutional import Convolution2D, MaxPooling2D
+from keras.layers.convolutional import Convolution2D, MaxPooling2D, ZeroPadding2D
 from keras.optimizers import SGD, Adam
 from keras.utils import np_utils
 from keras.models import model_from_json
 from sklearn.metrics import log_loss
 from scipy.misc.pilutil import imread, imresize
+import tensorflow as tf
+
 
 use_cache = 1
 # color type: 1 - grey, 3 - rgb
@@ -36,11 +38,12 @@ test_size = 0.3
 batch_size = 32
 nb_epoch = 3 
 random_state = 51
-img_rows, img_cols = 64, 64
-
+img_rows, img_cols = 120, 160      # default 480, 640
 
 # color_type = 1 - gray
 # color_type = 3 - RGB
+
+
 def get_im_cv2(path, img_rows, img_cols, color_type=1):
     # Load as grayscale
     if color_type == 1:
@@ -51,6 +54,7 @@ def get_im_cv2(path, img_rows, img_cols, color_type=1):
     #resized = cv2.resize(img, (img_cols, img_rows))
     # Keep size
     resized =  img 
+    print("img size: ", len(img), len(img[0]) )  
     return resized
 
 
@@ -261,16 +265,18 @@ def copy_selected_drivers(train_data, train_target, driver_id, driver_list):
 
 def create_model_v1(img_rows, img_cols, color_type=1):
     model = Sequential()
-    model.add(Convolution2D(32, 3, 3, border_mode='same', init='he_normal',
-                            input_shape=(color_type, img_rows, img_cols)))
+    #model = ef.keras.Sequential()  
+    
+    #model.add(tf.keras.layers.Conv2D
+    model.add(Convolution2D(32, 3, 3, padding='same',  input_shape=(color_type, img_rows, img_cols)))
     model.add(MaxPooling2D(pool_size=(2, 2)))
     model.add(Dropout(0.5))
 
-    model.add(Convolution2D(64, 3, 3, border_mode='same', init='he_normal'))
+    model.add(Convolution2D(64, 3, 3, padding='same', init='he_normal'))
     model.add(MaxPooling2D(pool_size=(2, 2)))
     model.add(Dropout(0.5))
 
-    model.add(Convolution2D(128, 3, 3, border_mode='same', init='he_normal'))
+    model.add(Convolution2D(128, 3, 3, padding='same', init='he_normal'))
     model.add(MaxPooling2D(pool_size=(8, 8)))
     model.add(Dropout(0.5))
 
@@ -280,6 +286,64 @@ def create_model_v1(img_rows, img_cols, color_type=1):
 
     model.compile(Adam(lr=1e-3), loss='categorical_crossentropy')
     return model
+
+
+def create_model_v2( img_rows, img_cols, color_type=1):
+    model = Sequential()
+    model.add(ZeroPadding2D((1, 1), input_shape=(color_type, img_rows, img_cols)))
+    model.add(Convolution2D(64, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D((1, 1)))
+    model.add(Convolution2D(64, 3, 3, activation='relu'))
+    model.add(MaxPooling2D((2, 2), strides=(2, 2)))
+
+    model.add(ZeroPadding2D((1, 1)))
+    model.add(Convolution2D(128, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D((1, 1)))
+    model.add(Convolution2D(128, 3, 3, activation='relu'))
+    model.add(MaxPooling2D((2, 2), strides=(2, 2)))
+
+    model.add(ZeroPadding2D((1, 1)))
+    model.add(Convolution2D(256, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D((1, 1)))
+    model.add(Convolution2D(256, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D((1, 1)))
+    model.add(Convolution2D(256, 3, 3, activation='relu'))
+    model.add(MaxPooling2D((2, 2), strides=(2, 2)))
+
+    model.add(ZeroPadding2D((1, 1)))
+    model.add(Convolution2D(512, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D((1, 1)))
+    model.add(Convolution2D(512, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D((1, 1)))
+    model.add(Convolution2D(512, 3, 3, activation='relu'))
+    model.add(MaxPooling2D((2, 2), strides=(2, 2)))
+
+    model.add(ZeroPadding2D((1, 1)))
+    model.add(Convolution2D(512, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D((1, 1)))
+    model.add(Convolution2D(512, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D((1, 1)))
+    model.add(Convolution2D(512, 3, 3, activation='relu'))
+    model.add(MaxPooling2D((2, 2), strides=(2, 2)))
+
+    model.add(Flatten())
+    model.add(Dense(4096, activation='relu'))
+    model.add(Dropout(0.5))
+    model.add(Dense(4096, activation='relu'))
+    model.add(Dropout(0.5))
+    model.add(Dense(1000, activation='softmax'))
+
+    model.load_weights('../input/vgg16_weights.h5')
+
+    # Code above loads pre-trained data and
+    model.layers.pop()
+    model.add(Dense(10, activation='softmax'))
+    # Learning rate is changed to 0.001
+    sgd = SGD(lr=1e-3, decay=1e-6, momentum=0.9, nesterov=True)
+
+    model.compile(optimizer=sgd, loss='categorical_crossentropy')
+
+    return model  
 
 
 def readfile():
@@ -300,14 +364,15 @@ def readfile():
 def run_single():
 
     X_data, Y_data, data_index = readfile()
-
+    img_rows, img_cols = len(X_data[0]), len(X_data[0][0])  
+ 
     # shuffle, split original training dataset to training and testing. 'cause no testing labels in original test data.     
     X_train, X_test, Y_train, Y_test = shuffle_and_split( X_data, Y_data, test_size )  
 
-    print('read file done')
+    print('Shuffle and split done')
 
-    print( len(X_train), len(X_train[0]), len(Y_train), len(Y_train[0]) )  
-    print( X_train[0], Y_train[0]  )  
+    #print( len(X_train), len(X_train[0]), len(Y_train), len(Y_train[0]) )  
+    #print( X_train[0], Y_train[0]  )  
 
     unique_list_valid = ['p081']
 
@@ -321,7 +386,9 @@ def run_single():
     print('Test drivers: ', unique_list_valid)
     """ 
 
-    model = create_model_v1(img_rows, img_cols, color_type_global)
+    # call model 
+    #model = create_model_v1(img_rows, img_cols, color_type_global)
+    model = create_model_v2(img_rows, img_cols, color_type_global)
     print("about to train the model") 
     sys.exit()  
 
