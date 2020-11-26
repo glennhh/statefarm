@@ -36,9 +36,10 @@ dataset_path = './dataset'
 dataset_imgs = dataset_path + '/imgs'  
 test_size = 0.3   
 batch_size = 32
-nb_epoch = 3 
-random_state = 51
-img_rows, img_cols = 120, 160      # default 480, 640
+nb_epoch = 1 
+random_state = 33 
+img_rows, img_cols = 128, 128      # default 480, 640
+validation_ratio = 0.2  
 
 # color_type = 1 - gray
 # color_type = 3 - RGB
@@ -201,9 +202,13 @@ def read_and_normalize_train_data(img_rows, img_cols, color_type=1):
     train_data = train_data.reshape(train_data.shape[0], color_type, img_rows, img_cols)
     train_target = np_utils.to_categorical(train_target, 10)
     train_data = train_data.astype('float32')
-    train_data /= 255
+    train_data /= 255 
+    #train_data = np.expand_dims(train_data, -1) 
     print('Train shape:', train_data.shape)
-    print(train_data.shape[0], 'train samples')
+    print('Total train samples', train_data.shape[0] )
+    #print('100th sample shape:', train_data[99])  
+    #print('100th\'s 1st shape:',train_data[99][0] )  
+    #print('100th\'s 1st\'1st shape:',train_data[99][0][0] )  
     return train_data, train_target, driver_id, unique_drivers
 
 
@@ -220,6 +225,7 @@ def read_and_normalize_test_data(img_rows, img_cols, color_type=1):
     test_data = test_data.reshape(test_data.shape[0], color_type, img_rows, img_cols)
     test_data = test_data.astype('float32')
     test_data /= 255
+    test_data = np.expand_dims(test_data, -1) 
     print('Test shape:', test_data.shape)
     print(test_data.shape[0], 'test samples')
     return test_data, test_id
@@ -268,17 +274,17 @@ def create_model_v1(img_rows, img_cols, color_type=1):
     #model = ef.keras.Sequential()  
     
     #model.add(tf.keras.layers.Conv2D
-    model.add(Convolution2D(32, 3, 3, padding='same',  input_shape=(color_type, img_rows, img_cols)))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(0.5))
+    model.add(Convolution2D(32, 3, 3, activation='relu', padding='same',  input_shape=(color_type, img_rows, img_cols)))
+    #model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Dropout(0.2))
 
-    model.add(Convolution2D(64, 3, 3, padding='same', init='he_normal'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(0.5))
+    model.add(Convolution2D(64, 3, 3, activation='relu', padding='same'))
+    #model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Dropout(0.2))
 
-    model.add(Convolution2D(128, 3, 3, padding='same', init='he_normal'))
-    model.add(MaxPooling2D(pool_size=(8, 8)))
-    model.add(Dropout(0.5))
+    model.add(Convolution2D(128, 3, 3, activation='relu', padding='same'))
+    #model.add(MaxPooling2D(pool_size=(8, 8)))
+    model.add(Dropout(0.2))
 
     model.add(Flatten())
     model.add(Dense(10))
@@ -291,39 +297,39 @@ def create_model_v1(img_rows, img_cols, color_type=1):
 def create_model_v2( img_rows, img_cols, color_type=1):
     model = Sequential()
     model.add(ZeroPadding2D((1, 1), input_shape=(color_type, img_rows, img_cols)))
-    model.add(Convolution2D(64, 3, 3, activation='relu'))
+    model.add(Convolution2D(64, 3, 3, activation='relu', padding='same'))
     model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(64, 3, 3, activation='relu'))
+    model.add(Convolution2D(64, 3, 3, activation='relu', padding='same'))
     model.add(MaxPooling2D((2, 2), strides=(2, 2)))
 
     model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(128, 3, 3, activation='relu'))
+    model.add(Convolution2D(128, 3, 3, activation='relu', padding='same'))
     model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(128, 3, 3, activation='relu'))
+    model.add(Convolution2D(128, 3, 3, activation='relu', padding='same'))
     model.add(MaxPooling2D((2, 2), strides=(2, 2)))
 
     model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(256, 3, 3, activation='relu'))
+    model.add(Convolution2D(256, 3, 3, activation='relu', padding='same'))
     model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(256, 3, 3, activation='relu'))
+    model.add(Convolution2D(256, 3, 3, activation='relu', padding='same'))
     model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(256, 3, 3, activation='relu'))
+    model.add(Convolution2D(256, 3, 3, activation='relu', padding='same'))
     model.add(MaxPooling2D((2, 2), strides=(2, 2)))
 
     model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
+    model.add(Convolution2D(512, 3, 3, activation='relu', padding='same'))
     model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
+    model.add(Convolution2D(512, 3, 3, activation='relu', padding='same'))
     model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
+    model.add(Convolution2D(512, 3, 3, activation='relu', padding='same'))
     model.add(MaxPooling2D((2, 2), strides=(2, 2)))
 
     model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
+    model.add(Convolution2D(512, 3, 3, activation='relu', padding='same'))
     model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
+    model.add(Convolution2D(512, 3, 3, activation='relu', padding='same'))
     model.add(ZeroPadding2D((1, 1)))
-    model.add(Convolution2D(512, 3, 3, activation='relu'))
+    model.add(Convolution2D(512, 3, 3, activation='relu', padding='same'))
     model.add(MaxPooling2D((2, 2), strides=(2, 2)))
 
     model.add(Flatten())
@@ -364,15 +370,17 @@ def readfile():
 def run_single():
 
     X_data, Y_data, data_index = readfile()
-    img_rows, img_cols = len(X_data[0]), len(X_data[0][0])  
- 
+    img_rows, img_cols = len(X_data[0][0]), len(X_data[0][0][0])  
+    print('img size',  img_rows, img_cols )  
     # shuffle, split original training dataset to training and testing. 'cause no testing labels in original test data.     
     X_train, X_test, Y_train, Y_test = shuffle_and_split( X_data, Y_data, test_size )  
+    
+    #print( len(X_train), len(X_train[0]), len(Y_train), len(Y_train[0]) )  
+    #print( '1st of X_train, Y_train are: ', X_train[0], Y_train[0]  )  
+    #print( '1st of X_test, Y_test are: ', X_test[0], Y_test[0]  )  
 
     print('Shuffle and split done')
 
-    #print( len(X_train), len(X_train[0]), len(Y_train), len(Y_train[0]) )  
-    #print( X_train[0], Y_train[0]  )  
 
     unique_list_valid = ['p081']
 
@@ -386,14 +394,25 @@ def run_single():
     print('Test drivers: ', unique_list_valid)
     """ 
 
+   
     # call model 
-    #model = create_model_v1(img_rows, img_cols, color_type_global)
-    model = create_model_v2(img_rows, img_cols, color_type_global)
+    model = create_model_v1(img_rows, img_cols, color_type_global)
+    #model = create_model_v2(img_rows, img_cols, color_type_global)
     print("about to train the model") 
-    sys.exit()  
 
+    model.compile(optimizer=tf.optimizers.Adam(learning_rate=0.0001,
+                                           beta_1=0.9,
+                                           beta_2=0.999,
+                                           epsilon=1e-07,
+                                           amsgrad=False,
+                                           name='Adam'
+                                           ),
+                                          loss='sparse_categorical_crossentropy',
+                                          metrics=['accuracy']
+                  ) 
+ 
     #model.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=nb_epoch, show_accuracy=True, verbose=1, validation_data=(X_test, Y_test))
-    model.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=nb_epoch, show_accuracy=True, verbose=1)
+    model.fit(X_train, Y_train, batch_size=batch_size, epochs=nb_epoch, validation_split=validation_ratio, shuffle=True, verbose=2)    
     
     # save model
     model.save('trained_model')  
@@ -405,22 +424,20 @@ def run_single():
     score = log_loss(Y_test, predictions_test )
     print('Score log_loss: ', score)
 
+    '''
     # Store valid predictions
     for i in range(len(test_index)):
         yfull_train[test_index[i]] = predictions_valid[i]
+    '''
 
     # Store test predictions
-    test_prediction = model.predict(test_data, batch_size=128, verbose=1)
-    yfull_test.append(test_prediction)
+    #test_loss, test_acc = model.evaluate( X_test, Y_test, verbose=1)
+    #print('Test Loss: {}'.format(test_loss))
+    #print('Test Accuracy: {}'.format(test_acc))  
 
-    print('Final log_loss: {}, rows: {} cols: {} epoch: {}'.format(score, img_rows, img_cols, nb_epoch))
-    info_string = 'loss_' + str(score) \
-                    + '_r_' + str(img_rows) \
-                    + '_c_' + str(img_cols) \
-                    + '_ep_' + str(nb_epoch)
+    validate = model.evaluate( X_test, Y_test, verbose=1)   
+    print('validate result is: ', validate )  
 
-    test_res = merge_several_folds_mean(yfull_test, 1)
-    create_submission(test_res, test_id, info_string)
 
 
 if "__main__" == __name__:
