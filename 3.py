@@ -29,16 +29,16 @@ from scipy.misc.pilutil import imread, imresize
 import tensorflow as tf
 
 
-use_cache = 1
+use_cache = 0 
 # color type: 1 - grey, 3 - rgb
 color_type_global = 1
 dataset_path = './dataset'
 dataset_imgs = dataset_path + '/imgs'  
-test_size = 0.3   
-batch_size = 32
-nb_epoch = 1 
+test_size = 0.3   # test/all   
+batch_size = 1 
+nb_epoch = 50 
 random_state = 33 
-img_rows, img_cols = 128, 128      # default 480, 640
+img_rows, img_cols = 256, 256      # default 480, 640
 validation_ratio = 0.2  
 
 # color_type = 1 - gray
@@ -112,6 +112,8 @@ def load_train(img_rows, img_cols, color_type=1):
     unique_drivers = sorted(list(set(driver_id)))
     print('Unique drivers: {}'.format(len(unique_drivers)))
     print(unique_drivers)
+    #print('X_train, y_train is: ', X_train[0], y_train )
+    #print( '============================' )  
     return X_train, y_train, driver_id, unique_drivers
 
 
@@ -198,15 +200,20 @@ def read_and_normalize_train_data(img_rows, img_cols, color_type=1):
         (train_data, train_target, driver_id, unique_drivers) = restore_data(cache_path)
    
     train_data = np.array(train_data, dtype=np.uint8)
+    #print('100th y shape:', train_target[66])  
     train_target = np.array(train_target, dtype=np.uint8)
+    #print('100th y shape:', train_target[66])  
     train_data = train_data.reshape(train_data.shape[0], color_type, img_rows, img_cols)
-    train_target = np_utils.to_categorical(train_target, 10)
+    #train_target = np_utils.to_categorical(train_target, 10) 
+    #print('100th y shape:', train_target[66])  
     train_data = train_data.astype('float32')
     train_data /= 255 
     #train_data = np.expand_dims(train_data, -1) 
     print('Train shape:', train_data.shape)
-    print('Total train samples', train_data.shape[0] )
+    #print('Total train samples', train_data.shape[0] )
     #print('100th sample shape:', train_data[99])  
+    #print('100th y shape:', train_target[66])  
+
     #print('100th\'s 1st shape:',train_data[99][0] )  
     #print('100th\'s 1st\'1st shape:',train_data[99][0][0] )  
     return train_data, train_target, driver_id, unique_drivers
@@ -269,19 +276,47 @@ def copy_selected_drivers(train_data, train_target, driver_id, driver_list):
     return data, target, index
 
 
-def create_model_v2( img_rows, img_cols, color_type=1):
+def create_model_v1(img_rows, img_cols, color_type=1):
     model = Sequential()
-    model.add(ZeroPadding2D((1, 1), input_shape=(color_type, img_rows, img_cols)))
+    #model = ef.keras.Sequential()  
+    
+    #model.add(tf.keras.layers.Conv2D
+    model.add(Convolution2D(32, 3, 3, activation='relu', padding='same',  input_shape=(color_type, img_rows, img_cols)))
+    #model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Dropout(0.2))
+
     model.add(Convolution2D(64, 3, 3, activation='relu', padding='same'))
+    #model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Dropout(0.2))
+
+    model.add(Convolution2D(128, 3, 3, activation='relu', padding='same'))
+    #model.add(MaxPooling2D(pool_size=(8, 8)))
+    model.add(Dropout(0.2))
+
+    model.add(Flatten())
+    model.add(Dense(10))
+    model.add(Activation('softmax'))
+
+    model.compile(Adam(lr=1e-3), loss='categorical_crossentropy')
+    return model
+
+
+def create_model_v2( img_rows, img_cols, color_type=1):
+    print('model 2 0') 
+
+    model = Sequential()
+    #model.add(ZeroPadding2D((1, 1), input_shape=(color_type, img_rows, img_cols)))
+    model.add(Convolution2D(64, 3, 3, activation='relu', padding='same', input_shape=(color_type, img_rows, img_cols)) ) 
     model.add(ZeroPadding2D((1, 1)))
     model.add(Convolution2D(64, 3, 3, activation='relu', padding='same'))
-    model.add(MaxPooling2D((2, 2), strides=(2, 2)))
-
+    model.add(MaxPooling2D((2, 2), strides=1))
+    print('model 2 1') 
     model.add(ZeroPadding2D((1, 1)))
     model.add(Convolution2D(128, 3, 3, activation='relu', padding='same'))
     model.add(ZeroPadding2D((1, 1)))
     model.add(Convolution2D(128, 3, 3, activation='relu', padding='same'))
-    model.add(MaxPooling2D((2, 2), strides=(2, 2)))
+    model.add(MaxPooling2D((2, 2), strides=1))
+    print('model 2 2') 
 
     model.add(ZeroPadding2D((1, 1)))
     model.add(Convolution2D(256, 3, 3, activation='relu', padding='same'))
@@ -289,7 +324,8 @@ def create_model_v2( img_rows, img_cols, color_type=1):
     model.add(Convolution2D(256, 3, 3, activation='relu', padding='same'))
     model.add(ZeroPadding2D((1, 1)))
     model.add(Convolution2D(256, 3, 3, activation='relu', padding='same'))
-    model.add(MaxPooling2D((2, 2), strides=(2, 2)))
+    model.add(MaxPooling2D((2, 2), strides=1))
+    print('model 2 3') 
 
     model.add(ZeroPadding2D((1, 1)))
     model.add(Convolution2D(512, 3, 3, activation='relu', padding='same'))
@@ -350,21 +386,14 @@ def run_single():
     # shuffle, split original training dataset to training and testing. 'cause no testing labels in original test data.     
     X_train, X_test, Y_train, Y_test = shuffle_and_split( X_data, Y_data, test_size )  
     
-    #print( len(X_train), len(X_train[0]), len(Y_train), len(Y_train[0]) )  
-    #print( '1st of X_train, Y_train are: ', X_train[0], Y_train[0]  )  
-    #print( '1st of X_test, Y_test are: ', X_test[0], Y_test[0]  )  
-
     print('Shuffle and split done')
 
+    """
 
     unique_list_valid = ['p081']
 
-    """
     X_valid, Y_valid, test_index = copy_selected_drivers(train_data, train_target, driver_id, unique_list_valid)
-
-    print('Start Single Run')
-    print('Split train: ', len(X_train), len(Y_train))
-    print('Split valid: ', len(X_valid), len(Y_valid))
+print('Start Single Run') print('Split train: ', len(X_train), len(Y_train)) print('Split valid: ', len(X_valid), len(Y_valid))
     print('Train drivers: ', unique_list_train)
     print('Test drivers: ', unique_list_valid)
     """ 
@@ -385,13 +414,18 @@ def run_single():
                                           loss='sparse_categorical_crossentropy',
                                           metrics=['accuracy']
                   ) 
+    print( len(X_train), len(Y_train), len(Y_test), len(Y_test) )  
+    #print( '1st of X_train, Y_train are: ', X_train[2222], Y_train[2222]  )  
+    #print( '1st of X_test, Y_test are: ', X_test[2222], Y_test[2222]  )  
+
  
     #model.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=nb_epoch, show_accuracy=True, verbose=1, validation_data=(X_test, Y_test))
-    model.fit(X_train, Y_train, batch_size=batch_size, epochs=nb_epoch, validation_split=validation_ratio, shuffle=True, verbose=2)    
+    #model.fit(X_train, Y_train, batch_size=batch_size, epochs=nb_epoch, validation_split=validation_ratio, shuffle=True, verbose=2)    
+    model.fit(X_train, Y_train, batch_size=batch_size, epochs=nb_epoch, shuffle=True, verbose=2)    
     
     # save model
-    model.save('trained_model')  
-
+    model.save('trained_model/trained.h5')  
+    '''
     # score = model.evaluate(X_valid, Y_valid, show_accuracy=True, verbose=0)
     # print('Score log_loss: ', score[0])
 
@@ -399,7 +433,6 @@ def run_single():
     score = log_loss(Y_test, predictions_test )
     print('Score log_loss: ', score)
 
-    '''
     # Store valid predictions
     for i in range(len(test_index)):
         yfull_train[test_index[i]] = predictions_valid[i]
