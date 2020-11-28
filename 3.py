@@ -309,7 +309,7 @@ def create_model_v2( img_rows, img_cols, color_type=1):
     model.add(Convolution2D(64, 3, 3, activation='relu', padding='same', input_shape=(color_type, img_rows, img_cols)) ) 
     model.add(ZeroPadding2D((1, 1)))
     model.add(Convolution2D(64, 3, 3, activation='relu', padding='same'))
-    model.add(MaxPooling2D((2, 2), strides=1))
+    model.add(MaxPooling2D((2, 2), strides=(1, 1)))
     print('model 2 1') 
     model.add(ZeroPadding2D((1, 1)))
     model.add(Convolution2D(128, 3, 3, activation='relu', padding='same'))

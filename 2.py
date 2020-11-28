@@ -36,7 +36,7 @@ dataset_path = './dataset'
 dataset_imgs = dataset_path + '/imgs'  
 test_size = 0.3   # test/all   
 batch_size = 1 
-nb_epoch = 50 
+nb_epoch = 100 
 random_state = 33 
 img_rows, img_cols = 256, 256      # default 480, 640
 validation_ratio = 0.2  
@@ -208,7 +208,7 @@ def read_and_normalize_train_data(img_rows, img_cols, color_type=1):
     #print('100th y shape:', train_target[66])  
     train_data = train_data.astype('float32')
     train_data /= 255 
-    #train_data = np.expand_dims(train_data, -1) 
+    train_data = np.expand_dims(train_data, -1) 
     print('Train shape:', train_data.shape)
     #print('Total train samples', train_data.shape[0] )
     #print('100th sample shape:', train_data[99])  
