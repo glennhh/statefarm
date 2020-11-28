@@ -29,14 +29,14 @@ from scipy.misc.pilutil import imread, imresize
 import tensorflow as tf
 
 
-use_cache = 0 
+use_cache = 1 
 # color type: 1 - grey, 3 - rgb
 color_type_global = 1
 dataset_path = './dataset'
 dataset_imgs = dataset_path + '/imgs'  
 test_size = 0.3   # test/all   
 batch_size = 1 
-nb_epoch = 100 
+nb_epoch = 30 
 random_state = 33 
 img_rows, img_cols = 256, 256      # default 480, 640
 validation_ratio = 0.2  
@@ -208,7 +208,6 @@ def read_and_normalize_train_data(img_rows, img_cols, color_type=1):
     #print('100th y shape:', train_target[66])  
     train_data = train_data.astype('float32')
     train_data /= 255 
-    train_data = np.expand_dims(train_data, -1) 
     print('Train shape:', train_data.shape)
     #print('Total train samples', train_data.shape[0] )
     #print('100th sample shape:', train_data[99])  
@@ -232,7 +231,7 @@ def read_and_normalize_test_data(img_rows, img_cols, color_type=1):
     test_data = test_data.reshape(test_data.shape[0], color_type, img_rows, img_cols)
     test_data = test_data.astype('float32')
     test_data /= 255
-    test_data = np.expand_dims(test_data, -1) 
+    #test_data = np.expand_dims(test_data, -1) 
     print('Test shape:', test_data.shape)
     print(test_data.shape[0], 'test samples')
     return test_data, test_id
@@ -279,7 +278,7 @@ def copy_selected_drivers(train_data, train_target, driver_id, driver_list):
 def create_model_v1(img_rows, img_cols, color_type=1):
     model = Sequential()
     #model = ef.keras.Sequential()  
-    
+    print('model 1')     
     #model.add(tf.keras.layers.Conv2D
     model.add(Convolution2D(32, 3, 3, activation='relu', padding='same',  input_shape=(color_type, img_rows, img_cols)))
     #model.add(MaxPooling2D(pool_size=(2, 2)))
@@ -389,7 +388,7 @@ def run_single():
     unique_list_valid = ['p081']
 
     X_valid, Y_valid, test_index = copy_selected_drivers(train_data, train_target, driver_id, unique_list_valid)
-print('Start Single Run') print('Split train: ', len(X_train), len(Y_train)) print('Split valid: ', len(X_valid), len(Y_valid))
+    print('Start Single Run') print('Split train: ', len(X_train), len(Y_train)) print('Split valid: ', len(X_valid), len(Y_valid))
     print('Train drivers: ', unique_list_train)
     print('Test drivers: ', unique_list_valid)
     """ 
@@ -420,7 +419,7 @@ print('Start Single Run') print('Split train: ', len(X_train), len(Y_train)) pri
     model.fit(X_train, Y_train, batch_size=batch_size, epochs=nb_epoch, shuffle=True, verbose=2)    
     
     # save model
-    model.save('trained_model/trained.h5')  
+    model.save('trained_model/trained2.h5')  
     '''
     # score = model.evaluate(X_valid, Y_valid, show_accuracy=True, verbose=0)
     # print('Score log_loss: ', score[0])
@@ -440,7 +439,13 @@ print('Start Single Run') print('Split train: ', len(X_train), len(Y_train)) pri
     #print('Test Accuracy: {}'.format(test_acc))  
 
     validate = model.evaluate( X_test, Y_test, verbose=1)   
-    print('validate result is: ', validate )  
+    print('Test result is: ', validate )  
+    
+    print('True label is: ', Y_test[99]) 
+    x = np.array(X_test[99]) 
+    x = x.reshape( 1, 1, 256, 256 )  
+    print('Predict label is: ', model.predict_classes( x ) )   
+
 
 
 
