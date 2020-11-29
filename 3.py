@@ -29,16 +29,16 @@ from scipy.misc.pilutil import imread, imresize
 import tensorflow as tf
 
 
-use_cache = 0 
+use_cache = 1 
 # color type: 1 - grey, 3 - rgb
-color_type_global = 1
+color_type_global =3 
 dataset_path = './dataset'
 dataset_imgs = dataset_path + '/imgs'  
 test_size = 0.3   # test/all   
 batch_size = 8 
-nb_epoch = 100 
+nb_epoch = 3 
 random_state = 33 
-img_rows, img_cols = 256, 256      # default 480, 640
+img_rows, img_cols = 224, 224      # default 480, 640
 validation_ratio = 0.2  
 
 # color_type = 1 - gray
@@ -66,10 +66,17 @@ def get_im_cv2_mod(path, img_rows, img_cols, color_type=1):
     else:
         img = cv2.imread(path)
     # Reduce size
+    '''
     rotate = random.uniform(-10, 10)
     M = cv2.getRotationMatrix2D((img.shape[1]/2, img.shape[0]/2), rotate, 1)
     img = cv2.warpAffine(img, M, (img.shape[1], img.shape[0]))
     resized = cv2.resize(img, (img_cols, img_rows), cv2.INTER_LINEAR)
+    '''
+    resized = cv2.resize(cv2.imread(path), (img_rows, img_cols)).astype(np.float32)
+
+
+
+
     return resized
     
 
@@ -89,7 +96,7 @@ def get_driver_data():
     return dr
 
 
-def load_train(img_rows, img_cols, color_type=1):
+def load_train(img_rows, img_cols, color_type=3):
     X_train = []
     y_train = []
     driver_id = []
@@ -150,9 +157,15 @@ def cache_data(data, path):
 
 def restore_data(path):
     data = dict()
-    if os.path.isfile(path):
+    print(path) 
+
+    if os.path.isfile(path) and os.path.getsize(path) > 0 :
         file = open(path, 'rb')
-        data = pickle.load(file)
+        try:
+            data = pickle.load(file)
+        except EOFError:
+            print('EOFError on ', path)
+            sys.exit() 
     return data
 
 
@@ -203,7 +216,7 @@ def read_and_normalize_train_data(img_rows, img_cols, color_type=1):
     #print('100th y shape:', train_target[66])  
     train_target = np.array(train_target, dtype=np.uint8)
     #print('100th y shape:', train_target[66])  
-    train_data = train_data.reshape(train_data.shape[0], color_type, img_rows, img_cols)
+    train_data = train_data.reshape(train_data.shape[0],  img_rows, img_cols, color_type)
     #train_target = np_utils.to_categorical(train_target, 10) 
     #print('100th y shape:', train_target[66])  
     train_data = train_data.astype('float32')
@@ -302,17 +315,17 @@ def create_model_v1(img_rows, img_cols, color_type=1):
 
 def create_model_v2( img_rows, img_cols, color_type=1):
     model = Sequential()
-    model.add(ZeroPadding2D((1, 1), input_shape=(color_type, img_rows, img_cols)))
+    model.add(ZeroPadding2D((1, 1), input_shape=( 256, 256, 1 )))
     model.add(Convolution2D(64, 3, 3, activation='relu', padding='same'))
     model.add(ZeroPadding2D((1, 1)))
     model.add(Convolution2D(64, 3, 3, activation='relu', padding='same'))
-    model.add(MaxPooling2D((2, 2), strides=(2, 2)))
+    model.add(MaxPooling2D((2, 2), strides=1))
 
     model.add(ZeroPadding2D((1, 1)))
     model.add(Convolution2D(128, 3, 3, activation='relu', padding='same'))
     model.add(ZeroPadding2D((1, 1)))
     model.add(Convolution2D(128, 3, 3, activation='relu', padding='same'))
-    model.add(MaxPooling2D((2, 2), strides=(2, 2)))
+    model.add(MaxPooling2D((2, 2), strides=1))
 
     model.add(ZeroPadding2D((1, 1)))
     model.add(Convolution2D(256, 3, 3, activation='relu', padding='same'))
@@ -320,7 +333,7 @@ def create_model_v2( img_rows, img_cols, color_type=1):
     model.add(Convolution2D(256, 3, 3, activation='relu', padding='same'))
     model.add(ZeroPadding2D((1, 1)))
     model.add(Convolution2D(256, 3, 3, activation='relu', padding='same'))
-    model.add(MaxPooling2D((2, 2), strides=(2, 2)))
+    model.add(MaxPooling2D((2, 2), strides=1))
 
     model.add(ZeroPadding2D((1, 1)))
     model.add(Convolution2D(512, 3, 3, activation='relu', padding='same'))
@@ -328,7 +341,7 @@ def create_model_v2( img_rows, img_cols, color_type=1):
     model.add(Convolution2D(512, 3, 3, activation='relu', padding='same'))
     model.add(ZeroPadding2D((1, 1)))
     model.add(Convolution2D(512, 3, 3, activation='relu', padding='same'))
-    model.add(MaxPooling2D((2, 2), strides=(2, 2)))
+    #model.add(MaxPooling2D((2, 2), strides=1))
 
     model.add(ZeroPadding2D((1, 1)))
     model.add(Convolution2D(512, 3, 3, activation='relu', padding='same'))
@@ -336,16 +349,16 @@ def create_model_v2( img_rows, img_cols, color_type=1):
     model.add(Convolution2D(512, 3, 3, activation='relu', padding='same'))
     model.add(ZeroPadding2D((1, 1)))
     model.add(Convolution2D(512, 3, 3, activation='relu', padding='same'))
-    model.add(MaxPooling2D((2, 2), strides=(2, 2)))
+    #model.add(MaxPooling2D((2, 2), strides=1))
 
     model.add(Flatten())
-    model.add(Dense(4096, activation='relu'))
+    model.add(Dense(1024, activation='relu'))
     model.add(Dropout(0.5))
-    model.add(Dense(4096, activation='relu'))
+    model.add(Dense(1024, activation='relu'))
     model.add(Dropout(0.5))
-    model.add(Dense(1000, activation='softmax'))
+    model.add(Dense(10, activation='softmax'))
 
-    model.load_weights('../input/vgg16_weights.h5')
+    model.load_weights('input/vgg16_weights.h5')
 
     # Code above loads pre-trained data and
     model.layers.pop()
@@ -356,6 +369,32 @@ def create_model_v2( img_rows, img_cols, color_type=1):
     model.compile(optimizer=sgd, loss='categorical_crossentropy')
 
     return model  
+
+
+def read_img_3(): 
+
+    im = cv2.resize(cv2.imread('cat.jpg'), (224, 224)).astype(np.float32)
+    im[:,:,0] -= 103.939
+    im[:,:,1] -= 116.779
+    im[:,:,2] -= 123.68
+    im = im.transpose((2,0,1))
+    im = np.expand_dims(im, axis=0)
+
+
+
+def create_model_v2( img_rows, img_cols, color_type_global):
+
+    return tf.keras.applications.MobileNetV2(
+                input_shape=( 224,224,3 ),
+                alpha=1.0,
+                include_top=True,
+                weights="imagenet",
+                input_tensor=None,
+                pooling=None,
+                classes=10,
+                classifier_activation="softmax",
+                **kwargs
+            )
 
 
 def readfile():
@@ -372,6 +411,8 @@ def readfile():
                      'p075']
     X_train, Y_train, train_index = copy_selected_drivers(train_data, train_target, driver_id, unique_list_train)
     return X_train, Y_train, train_index
+
+
 
 def run_single():
 
@@ -395,7 +436,7 @@ def run_single():
 
    
     # call model 
-    model = create_model_v1(img_rows, img_cols, color_type_global)
+    model = create_model_v2(img_rows, img_cols, color_type_global)
     #model = create_model_v2(img_rows, img_cols, color_type_global)
     print("about to train the model") 
 
@@ -419,7 +460,7 @@ def run_single():
     model.fit(X_train, Y_train, batch_size=batch_size, epochs=nb_epoch, shuffle=True, verbose=2)    
     
     # save model
-    model.save('trained_model/trained2.h5')  
+    model.save('trained_model/trained3.h5')  
     '''
     # score = model.evaluate(X_valid, Y_valid, show_accuracy=True, verbose=0)
     # print('Score log_loss: ', score[0])
