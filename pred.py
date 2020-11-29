@@ -120,7 +120,7 @@ def pred2(img_path):
     
     #preprocess for vgg16
     #processed_image_vgg16 = vgg16.preprocess_input(input_image.copy())
-    custom3 = keras.models.load_model('trained_model/trained2.h5')
+    custom3 = keras.models.load_model('trained_model/trained4.h5')
     #processed_image_custom3 = custom3.preprocess_input(input_image.copy())
     processed_image_custom3 = custom3  
     # model  
