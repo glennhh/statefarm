@@ -29,14 +29,14 @@ from scipy.misc.pilutil import imread, imresize
 import tensorflow as tf
 
 
-use_cache = 0 
+use_cache = 1 
 # color type: 1 - grey, 3 - rgb
 color_type_global = 1
 dataset_path = './dataset'
 dataset_imgs = dataset_path + '/imgs'  
 test_size = 0.3   # test/all   
 batch_size = 8 
-nb_epoch = 100 
+nb_epoch = 12 
 random_state = 33 
 img_rows, img_cols = 256, 256      # default 480, 640
 validation_ratio = 0.2  
