@@ -72,7 +72,7 @@ def get_im_cv2_mod(path, img_rows, img_cols, color_type=1):
     #img = cv2.warpAffine(img, M, (img.shape[1], img.shape[0]))  
     resized = cv2.resize(img, (img_cols, img_rows) ) 
     #print( len(resized), len(resized[0])  ) 
-    return resized 
+    return resized c
     
 
 def get_driver_data():
@@ -461,7 +461,7 @@ def run_single():
     
     print('True label is: ', Y_test[99]) 
     x = np.array(X_test[99]) 
-    x = x.reshape( 1, 1, 256, 256 )  
+    x = x.reshape( 1, 256, 256, 1 )  
     print('Predict label is: ', model.predict_classes( x ) )   
 
 
