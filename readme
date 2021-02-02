@@ -10,7 +10,7 @@ How to run:
     $ python3 2.py 
 
 Test model:
-    $ python3 inference.py dataset/imgs/test/img_30.jpg 
+    $ python3 inference.py dataset/img_30.jpg 
 
 
 
