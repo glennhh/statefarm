@@ -1,3 +1,8 @@
+Introduction:
+
+This project is for training a model to predict driver's behavior based on their driving images.
+The dataset is from Kaggle challenge: https://www.kaggle.com/c/state-farm-distracted-driver-detection
+
 
 How to run:
 
